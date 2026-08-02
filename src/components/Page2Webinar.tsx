@@ -79,8 +79,13 @@ export const Page2Webinar: React.FC<Page2WebinarProps> = ({
   const [showLockModal, setShowLockModal] = useState<boolean>(false);
   const [isManualUnlocked, setIsManualUnlocked] = useState<boolean>(false);
 
-  // Auto-sync initial visit to Google Sheets
+  // Auto-sync initial visit to Google Sheets and set Thank You URL
   useEffect(() => {
+    if (window.location.pathname !== '/thank-you') {
+      window.history.replaceState(null, '', '/thank-you');
+    }
+    document.title = "Thank You - Training Institute Growth System";
+
     const newVisits = (currentLead?.visitCount || 0) + 1;
     setVisitCount(newVisits);
 
@@ -104,6 +109,7 @@ export const Page2Webinar: React.FC<Page2WebinarProps> = ({
       lead_id: activeLead.id,
       institute: activeLead.contact.instituteName,
       visitCount: newVisits,
+      pageUrl: '/thank-you',
     });
 
     const updatedLeadRecord: LeadRecord = {
@@ -281,8 +287,8 @@ export const Page2Webinar: React.FC<Page2WebinarProps> = ({
         <div className="max-w-5xl mx-auto flex items-center justify-between text-xs">
           <div className="flex items-center space-x-2.5">
             <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
-            <span className="font-extrabold uppercase tracking-wider text-slate-200">
-              LIVE WEBINAR SESSION
+            <span className="font-extrabold uppercase tracking-wider text-emerald-400">
+              THANK YOU PAGE <span className="text-slate-400 font-normal">(/thank-you)</span>
             </span>
             <span className="hidden sm:inline text-slate-500">•</span>
             <span className="hidden sm:inline text-slate-400">

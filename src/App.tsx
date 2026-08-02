@@ -20,12 +20,23 @@ export default function App() {
   useEffect(() => {
     const search = window.location.search.toLowerCase();
     const hash = window.location.hash.toLowerCase();
-    if (search.includes('webinar') || search.includes('thankyou') || hash.includes('webinar') || hash.includes('thankyou')) {
+    const pathname = window.location.pathname.toLowerCase();
+    if (
+      search.includes('webinar') ||
+      search.includes('thankyou') ||
+      hash.includes('webinar') ||
+      hash.includes('thankyou') ||
+      pathname.includes('thank-you') ||
+      pathname.includes('thankyou')
+    ) {
       setActiveTab('page2');
+      document.title = "Thank You - Training Institute Growth System";
+    } else {
+      document.title = "Training Institute Growth System - Registration";
     }
 
     // Track initial page view
-    pixelTracker.track('PageView', { path: '/' });
+    pixelTracker.track('PageView', { path: pathname || '/' });
 
     // Subscribe to real-time leads from Firestore
     const unsubscribe = subscribeToLeads((realtimeLeads) => {
@@ -57,8 +68,10 @@ export default function App() {
     // Save asynchronously to Firestore and local storage
     saveLeadToFirestore(newLead);
 
-    // Redirect immediately to Page 2 (Webinar Video Page)
+    // Redirect immediately to Page 2 (Thank You / Webinar Video Page)
     setActiveTab('page2');
+    window.history.pushState(null, '', '/thank-you');
+    document.title = "Thank You - Training Institute Growth System";
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
