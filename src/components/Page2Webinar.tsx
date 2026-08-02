@@ -282,36 +282,6 @@ export const Page2Webinar: React.FC<Page2WebinarProps> = ({
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col justify-between selection:bg-blue-600 selection:text-white">
-      {/* Minimal Top Session Banner — Zero Distraction */}
-      <header className="bg-slate-900/90 border-b border-slate-800/80 px-4 py-3 sticky top-0 z-40 backdrop-blur-md">
-        <div className="max-w-5xl mx-auto flex items-center justify-between text-xs">
-          <div className="flex items-center space-x-2.5">
-            <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
-            <span className="font-extrabold uppercase tracking-wider text-emerald-400">
-              THANK YOU PAGE <span className="text-slate-400 font-normal">(/thank-you)</span>
-            </span>
-            <span className="hidden sm:inline text-slate-500">•</span>
-            <span className="hidden sm:inline text-slate-400">
-              Training Institutes & Academies
-            </span>
-          </div>
-
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-1.5 text-slate-400 bg-slate-950 px-2.5 py-1 rounded-full border border-slate-800">
-              <Eye className="w-3.5 h-3.5 text-blue-400" />
-              <span>
-                {activeLead.contact.instituteName
-                  ? `${activeLead.contact.fullName} (${activeLead.contact.instituteName})`
-                  : 'Institute Visitor'}{' '}
-                <strong className="text-blue-400 font-bold ml-1">
-                  (Visit #{visitCount})
-                </strong>
-              </span>
-            </div>
-          </div>
-        </div>
-      </header>
-
       {/* Main Autoplay Video Area — Single Focus */}
       <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-6 sm:py-10 flex flex-col items-center justify-center space-y-6">
         {/* Webinar Headline */}
