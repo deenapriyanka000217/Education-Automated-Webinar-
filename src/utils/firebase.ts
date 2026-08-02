@@ -4,6 +4,7 @@ import {
   collection,
   doc,
   setDoc,
+  getDoc,
   getDocs,
   onSnapshot,
   deleteDoc,
@@ -197,4 +198,34 @@ export async function clearAllLeadsFromFirestore(): Promise<void> {
   } catch (e) {
     console.warn('Failed to clear Firestore leads collection:', e);
   }
+}
+
+const SETTINGS_COLLECTION = 'settings';
+
+export async function saveWebhookUrlToCloud(url: string): Promise<void> {
+  try {
+    localStorage.setItem('google_sheet_webhook_url', url);
+    const docRef = doc(db, SETTINGS_COLLECTION, 'config');
+    await setDoc(docRef, { googleSheetWebhookUrl: url }, { merge: true });
+  } catch (e) {
+    console.warn('Failed to save webhook URL to cloud:', e);
+  }
+}
+
+export async function getWebhookUrlFromCloud(): Promise<string> {
+  try {
+    const local = localStorage.getItem('google_sheet_webhook_url');
+    if (local && local.trim()) return local.trim();
+
+    const docRef = doc(db, SETTINGS_COLLECTION, 'config');
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists() && docSnap.data()?.googleSheetWebhookUrl) {
+      const cloudUrl = docSnap.data().googleSheetWebhookUrl;
+      localStorage.setItem('google_sheet_webhook_url', cloudUrl);
+      return cloudUrl;
+    }
+  } catch (e) {
+    console.warn('Failed to get webhook URL from cloud:', e);
+  }
+  return localStorage.getItem('google_sheet_webhook_url') || '';
 }

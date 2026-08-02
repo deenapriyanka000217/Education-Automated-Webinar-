@@ -1,4 +1,5 @@
 import { LeadRecord } from '../types';
+import { getWebhookUrlFromCloud, saveWebhookUrlToCloud } from './firebase';
 
 /**
  * Utility to automatically submit lead filling data, visit count, watch percentage (10%, 20%, 50%, 100%),
@@ -26,19 +27,18 @@ export function getStoredWebhookUrl(): string {
   }
 }
 
-export function saveWebhookUrl(url: string): void {
-  try {
-    localStorage.setItem(DEFAULT_WEBHOOK_URL_KEY, url);
-  } catch (e) {
-    console.error('Failed to save webhook URL:', e);
-  }
+export async function saveWebhookUrl(url: string): Promise<void> {
+  await saveWebhookUrlToCloud(url);
 }
 
 export async function submitLeadToGoogleSheets(
   lead: LeadRecord,
   accessToken?: string | null
 ): Promise<{ success: boolean; message: string }> {
-  const webhookUrl = getStoredWebhookUrl();
+  let webhookUrl = getStoredWebhookUrl();
+  if (!webhookUrl) {
+    webhookUrl = await getWebhookUrlFromCloud();
+  }
 
   const payload = {
     action: 'RECORD_LEAD',
@@ -115,7 +115,10 @@ export async function submitLeadToGoogleSheets(
 export async function deleteLeadFromGoogleSheets(
   leadId: string
 ): Promise<{ success: boolean; message: string }> {
-  const webhookUrl = getStoredWebhookUrl();
+  let webhookUrl = getStoredWebhookUrl();
+  if (!webhookUrl) {
+    webhookUrl = await getWebhookUrlFromCloud();
+  }
   if (!webhookUrl) {
     return { success: false, message: 'No webhook URL configured' };
   }

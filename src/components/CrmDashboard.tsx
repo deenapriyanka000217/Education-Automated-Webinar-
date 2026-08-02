@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Database,
   Search,
@@ -25,7 +25,8 @@ import {
 } from 'lucide-react';
 import { LeadRecord, CrmCategory, PipelineStage } from '../types';
 import { generateWhatsAppMessage, generateWhatsAppUrl } from '../utils/whatsapp';
-import { submitLeadToGoogleSheets } from '../utils/googleSheetsSync';
+import { submitLeadToGoogleSheets, saveWebhookUrl } from '../utils/googleSheetsSync';
+import { getWebhookUrlFromCloud } from '../utils/firebase';
 
 interface CrmDashboardProps {
   leads: LeadRecord[];
@@ -61,12 +62,18 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
   const [sheetsSyncSuccessMessage, setSheetsSyncSuccessMessage] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
 
-  // Save webhook URL to local storage
-  const handleSaveWebhookUrl = (url: string) => {
+  useEffect(() => {
+    getWebhookUrlFromCloud().then((url) => {
+      if (url && url !== googleSheetWebhookUrl) {
+        setGoogleSheetWebhookUrl(url);
+      }
+    });
+  }, []);
+
+  // Save webhook URL to cloud & local storage
+  const handleSaveWebhookUrl = async (url: string) => {
     setGoogleSheetWebhookUrl(url);
-    try {
-      localStorage.setItem('google_sheet_webhook_url', url);
-    } catch (e) {}
+    await saveWebhookUrl(url);
   };
 
   // Filter leads
