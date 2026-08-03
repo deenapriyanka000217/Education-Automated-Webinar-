@@ -85,7 +85,7 @@ export async function submitLeadToGoogleSheets(
   if (webhookUrl) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
       await fetch(webhookUrl, {
         method: 'POST',

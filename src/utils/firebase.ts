@@ -57,12 +57,15 @@ export async function saveLeadToFirestore(lead: LeadRecord): Promise<void> {
     console.warn('LocalStorage save warning:', e);
   }
 
-  // 2. Persist to Firestore for multi-device/multi-tab real-time sync with 2.5s timeout
+  // 2. Persist to Firestore for multi-device/multi-tab real-time sync
   try {
     const docRef = doc(db, LEADS_COLLECTION, lead.id);
-    const setPromise = setDoc(docRef, lead, { merge: true });
+    // Sanitize lead object to remove any undefined fields that cause Firestore setDoc to fail
+    const cleanLead = JSON.parse(JSON.stringify(lead));
+    
+    const setPromise = setDoc(docRef, cleanLead, { merge: true });
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Firestore save operation timed out')), 2500)
+      setTimeout(() => reject(new Error('Firestore save operation timed out')), 6000)
     );
     await Promise.race([setPromise, timeoutPromise]);
     console.log('Successfully saved lead to Firestore:', lead.id);
@@ -236,7 +239,7 @@ export async function getWebhookUrlFromCloud(): Promise<string> {
     const docRef = doc(db, SETTINGS_COLLECTION, 'config');
     const docSnapPromise = getDoc(docRef);
     const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Cloud config lookup timed out')), 1500)
+      setTimeout(() => reject(new Error('Cloud config lookup timed out')), 5000)
     );
     const docSnap = await Promise.race([docSnapPromise, timeoutPromise]);
     if (docSnap.exists() && docSnap.data()?.googleSheetWebhookUrl) {
