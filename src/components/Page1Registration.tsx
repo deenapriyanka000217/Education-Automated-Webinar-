@@ -80,17 +80,30 @@ export const Page1Registration: React.FC<Page1RegistrationProps> = ({
     setQError('');
   };
 
+  // Helper to extract clean 10-digit mobile number handling +91, 91, 0 prefixes
+  const extractMobileDigits = (val: string): string => {
+    let digits = val.replace(/\D/g, '');
+    if (digits.length > 10) {
+      if (digits.startsWith('91') && digits.length === 12) {
+        digits = digits.slice(2);
+      } else if (digits.startsWith('0') && digits.length === 11) {
+        digits = digits.slice(1);
+      }
+    }
+    return digits.slice(0, 10);
+  };
+
   // Validate contact details before moving to qualifying questions
   const validateContact = () => {
     const errors: Record<string, string> = {};
     if (!contact.fullName.trim()) errors.fullName = 'Full Name is required';
     if (!contact.instituteName.trim()) errors.instituteName = 'Institute / Business Name is required';
     
-    const digitsOnly = contact.whatsappNumber.replace(/\D/g, '');
+    const digitsOnly = extractMobileDigits(contact.whatsappNumber);
     if (!contact.whatsappNumber.trim()) {
       errors.whatsappNumber = 'WhatsApp Number is required';
     } else if (digitsOnly.length !== 10) {
-      errors.whatsappNumber = 'Please enter exactly 10 digits for your mobile number';
+      errors.whatsappNumber = 'Please enter a valid 10-digit mobile number';
     }
 
     if (!contact.email.trim()) errors.email = 'Email Address is required';
@@ -133,7 +146,7 @@ export const Page1Registration: React.FC<Page1RegistrationProps> = ({
   };
 
   // Submit Handler after qualifying part 2 confirmation
-  const handleSubmitForm = (e?: React.FormEvent) => {
+  const handleSubmitForm = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!validateContact()) {
       setFormPhase('details');
@@ -161,7 +174,7 @@ export const Page1Registration: React.FC<Page1RegistrationProps> = ({
     setQError('');
     setIsSubmitting(true);
 
-    const formattedDigits = contact.whatsappNumber.replace(/\D/g, '');
+    const formattedDigits = extractMobileDigits(contact.whatsappNumber);
     const formattedContact: ContactDetails = {
       ...contact,
       whatsappNumber: `+91${formattedDigits}`,
@@ -193,9 +206,14 @@ export const Page1Registration: React.FC<Page1RegistrationProps> = ({
       syncedToGoogleSheetsAt: new Date().toISOString(),
     };
 
-    // Auto-submit lead filling data to Google Sheets & Firestore CRM
-    submitLeadToGoogleSheets(newLead);
-    saveLeadToFirestore(newLead);
+    // Auto-submit lead filling data to Google Sheets & Firestore CRM asynchronously
+    // Non-blocking sync calls ensure instant redirect on Vercel or mobile browsers
+    submitLeadToGoogleSheets(newLead).catch((err) =>
+      console.warn('Google Sheets sync warning:', err)
+    );
+    saveLeadToFirestore(newLead).catch((err) =>
+      console.warn('Firestore save warning:', err)
+    );
 
     pixelTracker.track('Lead', {
       lead_id: newLead.id,
@@ -213,10 +231,8 @@ export const Page1Registration: React.FC<Page1RegistrationProps> = ({
       });
     }
 
-    setTimeout(() => {
-      setIsSubmitting(false);
-      onRegistrationComplete(newLead);
-    }, 800);
+    setIsSubmitting(false);
+    onRegistrationComplete(newLead);
   };
 
   return (

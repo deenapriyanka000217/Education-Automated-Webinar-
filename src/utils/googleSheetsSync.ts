@@ -35,9 +35,9 @@ export async function submitLeadToGoogleSheets(
   lead: LeadRecord,
   accessToken?: string | null
 ): Promise<{ success: boolean; message: string }> {
-  let webhookUrl = getStoredWebhookUrl();
+  let webhookUrl = await getWebhookUrlFromCloud();
   if (!webhookUrl) {
-    webhookUrl = await getWebhookUrlFromCloud();
+    webhookUrl = getStoredWebhookUrl();
   }
 
   const payload = {
@@ -84,12 +84,18 @@ export async function submitLeadToGoogleSheets(
   // 2. If Webhook URL is configured, send JSON POST request
   if (webhookUrl) {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+
       await fetch(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // text/plain avoids CORS preflight issues with Google Apps Script
         body: JSON.stringify(payload),
         mode: 'no-cors', // Standard for Google Apps Script Webhooks
+        keepalive: true,
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
       return {
         success: true,
@@ -115,9 +121,9 @@ export async function submitLeadToGoogleSheets(
 export async function deleteLeadFromGoogleSheets(
   leadId: string
 ): Promise<{ success: boolean; message: string }> {
-  let webhookUrl = getStoredWebhookUrl();
+  let webhookUrl = await getWebhookUrlFromCloud();
   if (!webhookUrl) {
-    webhookUrl = await getWebhookUrlFromCloud();
+    webhookUrl = getStoredWebhookUrl();
   }
   if (!webhookUrl) {
     return { success: false, message: 'No webhook URL configured' };
@@ -129,6 +135,7 @@ export async function deleteLeadFromGoogleSheets(
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action: 'DELETE_LEAD', id: leadId }),
       mode: 'no-cors',
+      keepalive: true,
     });
     return { success: true, message: 'Delete request sent to Google Sheets' };
   } catch (err: any) {

@@ -58,22 +58,34 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
   const [googleSheetWebhookUrl, setGoogleSheetWebhookUrl] = useState<string>(
     localStorage.getItem('google_sheet_webhook_url') || ''
   );
+  const [webhookInput, setWebhookInput] = useState<string>(
+    localStorage.getItem('google_sheet_webhook_url') || ''
+  );
   const [isSyncingSheets, setIsSyncingSheets] = useState(false);
   const [sheetsSyncSuccessMessage, setSheetsSyncSuccessMessage] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
 
   useEffect(() => {
     getWebhookUrlFromCloud().then((url) => {
-      if (url && url !== googleSheetWebhookUrl) {
-        setGoogleSheetWebhookUrl(url);
+      if (url) {
+        if (url !== googleSheetWebhookUrl) {
+          setGoogleSheetWebhookUrl(url);
+        }
+        if (url !== webhookInput) {
+          setWebhookInput(url);
+        }
       }
     });
   }, []);
 
   // Save webhook URL to cloud & local storage
   const handleSaveWebhookUrl = async (url: string) => {
-    setGoogleSheetWebhookUrl(url);
-    await saveWebhookUrl(url);
+    const cleanUrl = url.trim();
+    setGoogleSheetWebhookUrl(cleanUrl);
+    setWebhookInput(cleanUrl);
+    await saveWebhookUrl(cleanUrl);
+    setSheetsSyncSuccessMessage('Google Sheet Webhook URL saved and synced successfully!');
+    setTimeout(() => setSheetsSyncSuccessMessage(null), 4000);
   };
 
   // Filter leads
@@ -656,12 +668,13 @@ function doPost(e) {
                   <input
                     type="url"
                     placeholder="https://script.google.com/macros/s/AKfycb.../exec"
-                    value={googleSheetWebhookUrl}
-                    onChange={(e) => handleSaveWebhookUrl(e.target.value)}
+                    value={webhookInput}
+                    onChange={(e) => setWebhookInput(e.target.value)}
+                    onBlur={() => handleSaveWebhookUrl(webhookInput)}
                     className="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500 font-mono"
                   />
                   <button
-                    onClick={() => handleSaveWebhookUrl(googleSheetWebhookUrl)}
+                    onClick={() => handleSaveWebhookUrl(webhookInput)}
                     className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl border border-slate-700 cursor-pointer"
                   >
                     Save URL

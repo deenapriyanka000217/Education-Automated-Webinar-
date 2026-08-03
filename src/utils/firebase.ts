@@ -57,10 +57,14 @@ export async function saveLeadToFirestore(lead: LeadRecord): Promise<void> {
     console.warn('LocalStorage save warning:', e);
   }
 
-  // 2. Persist to Firestore for multi-device/multi-tab real-time sync
+  // 2. Persist to Firestore for multi-device/multi-tab real-time sync with 2.5s timeout
   try {
     const docRef = doc(db, LEADS_COLLECTION, lead.id);
-    await setDoc(docRef, lead, { merge: true });
+    const setPromise = setDoc(docRef, lead, { merge: true });
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Firestore save operation timed out')), 2500)
+    );
+    await Promise.race([setPromise, timeoutPromise]);
     console.log('Successfully saved lead to Firestore:', lead.id);
   } catch (e) {
     console.warn('Firestore save warning (operating in local fallback):', e);
@@ -214,11 +218,27 @@ export async function saveWebhookUrlToCloud(url: string): Promise<void> {
 
 export async function getWebhookUrlFromCloud(): Promise<string> {
   try {
+    const meta = (import.meta as any);
+    const envSecret = 
+      (meta && meta.env && (meta.env.VITE_GOOGLE_SHEET_WEBHOOK_URL || meta.env.VITE_GOOGLE_SHEET || meta.env.GOOGLE_SHEET)) ||
+      (typeof process !== 'undefined' && process.env && (process.env.GOOGLE_SHEET || process.env.VITE_GOOGLE_SHEET || process.env.VITE_GOOGLE_SHEET_WEBHOOK_URL));
+    if (envSecret && typeof envSecret === 'string' && envSecret.trim()) {
+      return envSecret.trim();
+    }
+  } catch (e) {}
+
+  try {
     const local = localStorage.getItem('google_sheet_webhook_url');
     if (local && local.trim()) return local.trim();
+  } catch (e) {}
 
+  try {
     const docRef = doc(db, SETTINGS_COLLECTION, 'config');
-    const docSnap = await getDoc(docRef);
+    const docSnapPromise = getDoc(docRef);
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Cloud config lookup timed out')), 1500)
+    );
+    const docSnap = await Promise.race([docSnapPromise, timeoutPromise]);
     if (docSnap.exists() && docSnap.data()?.googleSheetWebhookUrl) {
       const cloudUrl = docSnap.data().googleSheetWebhookUrl;
       localStorage.setItem('google_sheet_webhook_url', cloudUrl);
@@ -227,5 +247,6 @@ export async function getWebhookUrlFromCloud(): Promise<string> {
   } catch (e) {
     console.warn('Failed to get webhook URL from cloud:', e);
   }
-  return localStorage.getItem('google_sheet_webhook_url') || '';
+
+  return '';
 }

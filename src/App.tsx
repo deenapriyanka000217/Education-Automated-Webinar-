@@ -7,6 +7,7 @@ import { pixelTracker } from './utils/pixel';
 import {
   saveLeadToFirestore,
   subscribeToLeads,
+  getWebhookUrlFromCloud,
 } from './utils/firebase';
 
 export default function App() {
@@ -37,6 +38,9 @@ export default function App() {
 
     // Track initial page view
     pixelTracker.track('PageView', { path: pathname || '/' });
+
+    // Preload webhook URL from cloud/env on startup
+    getWebhookUrlFromCloud().catch(() => {});
 
     // Subscribe to real-time leads from Firestore
     const unsubscribe = subscribeToLeads((realtimeLeads) => {
