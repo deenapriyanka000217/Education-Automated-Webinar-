@@ -116,60 +116,18 @@ export const Page1Registration: React.FC<Page1RegistrationProps> = ({
 
   const handleProceedToPart1 = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateContact()) return;
-    setFormPhase('part1');
-    setQError('');
+    handleSubmitForm();
   };
 
   const handleProceedToPart2 = (e: React.FormEvent) => {
     e.preventDefault();
-    // Validate first 4 questions
-    if (!answers.businessType) {
-      setQError('Please select Question 1: Academy / Business Model');
-      return;
-    }
-    if (!answers.coursePrice) {
-      setQError('Please select Question 2: Course Price Bracket');
-      return;
-    }
-    if (!answers.monthlyStudents) {
-      setQError('Please select Question 3: Monthly Student Admissions');
-      return;
-    }
-    if (!answers.monthlyRevenue) {
-      setQError('Please select Question 4: Monthly Institute Revenue');
-      return;
-    }
-
-    setQError('');
-    setFormPhase('part2');
+    handleSubmitForm();
   };
 
-  // Submit Handler after qualifying part 2 confirmation
+  // Direct 1-Step Form Submit Handler (Works instantly on Vercel, mobile & AI Studio)
   const handleSubmitForm = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!validateContact()) {
-      setFormPhase('details');
-      return;
-    }
-
-    // Validate questions 5-8
-    if (!answers.marketingSpend) {
-      setQError('Please select Question 5: Monthly Marketing Budget');
-      return;
-    }
-    if (!answers.biggestChallenge) {
-      setQError('Please select Question 6: Primary Bottleneck');
-      return;
-    }
-    if (!answers.businessRole) {
-      setQError('Please select Question 7: Your Role in Institute');
-      return;
-    }
-    if (!answers.nextStepTimeline) {
-      setQError('Please select Question 8: Implementation Timeline');
-      return;
-    }
+    if (!validateContact()) return;
 
     setQError('');
     setIsSubmitting(true);
@@ -187,13 +145,25 @@ export const Page1Registration: React.FC<Page1RegistrationProps> = ({
       utm_content: 'tofu_video_ad',
     };
 
-    const { score, category } = calculateLeadScore(answers);
+    // Fill intelligent default answers for any unselected profile questions
+    const completeAnswers: QualificationAnswers = {
+      businessType: answers.businessType || 'Offline Training Institute',
+      coursePrice: answers.coursePrice || 'Below ₹5,000',
+      monthlyStudents: answers.monthlyStudents || '26–50',
+      monthlyRevenue: answers.monthlyRevenue || '₹5–₹10 Lakhs',
+      marketingSpend: answers.marketingSpend || 'Below ₹10,000',
+      biggestChallenge: answers.biggestChallenge || 'Getting consistent student leads',
+      businessRole: answers.businessRole || 'Founder / Owner',
+      nextStepTimeline: answers.nextStepTimeline || 'Immediately (Within 7 Days)',
+    };
+
+    const { score, category } = calculateLeadScore(completeAnswers);
 
     const newLead: LeadRecord = {
       id: `lead-${Date.now().toString().slice(-6)}`,
       createdAt: new Date().toISOString(),
       contact: formattedContact,
-      answers,
+      answers: completeAnswers,
       leadScore: score,
       category,
       stage: 'NEW REGISTRATION',
@@ -290,243 +260,155 @@ export const Page1Registration: React.FC<Page1RegistrationProps> = ({
                   {/* Form Header */}
                   <div className="flex justify-between items-center mb-4">
                     <div className="flex items-center space-x-2">
-                      {formPhase !== 'details' && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setQError('');
-                            if (formPhase === 'part2') setFormPhase('part1');
-                            else setFormPhase('details');
-                          }}
-                          className="p-1 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors"
-                          title="Previous Step"
-                        >
-                          <ChevronLeft className="w-5 h-5" />
-                        </button>
-                      )}
                       <span className="text-slate-900 font-extrabold tracking-tight text-base sm:text-lg">
-                        {formPhase === 'details' && 'Instant Registration'}
-                        {formPhase === 'part1' && 'Qualifying (Part 1 of 2)'}
-                        {formPhase === 'part2' && 'Qualifying (Part 2 of 2)'}
+                        Instant Free Registration
                       </span>
                     </div>
-                    <div className="px-2.5 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-extrabold uppercase tracking-wider border border-blue-100">
-                      {formPhase === 'details' && 'Step 1/3: Contact'}
-                      {formPhase === 'part1' && 'Step 2/3: Q1–Q4'}
-                      {formPhase === 'part2' && 'Step 3/3: Q5–Q8'}
+                    <div className="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full text-[10px] font-extrabold uppercase tracking-wider border border-emerald-200 flex items-center space-x-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                      <span>Instant Access</span>
                     </div>
                   </div>
 
-                  {/* Progress bar */}
-                  <div className="h-1.5 w-full bg-slate-100 rounded-full mb-4 overflow-hidden">
-                    <div
-                      className="h-full bg-blue-600 transition-all duration-300 rounded-full"
-                      style={{
-                        width: formPhase === 'details' ? '33%' : formPhase === 'part1' ? '66%' : '100%',
-                      }}
-                    ></div>
-                  </div>
+                  {/* Direct Contact & Details Form */}
+                  <form onSubmit={handleSubmitForm} className="space-y-3.5">
+                    <h3 className="text-slate-800 font-semibold text-xs sm:text-sm leading-snug">
+                      Enter your details below to unlock instant webinar access:
+                    </h3>
 
-                  {/* PHASE 1: CONTACT DETAILS FORM */}
-                  {formPhase === 'details' && (
-                    <form onSubmit={handleProceedToPart1} className="space-y-3.5">
-                      <h3 className="text-slate-900 font-bold text-sm sm:text-base leading-snug">
-                        Enter your details to receive free webinar access:
-                      </h3>
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">
+                        Full Name *
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Rajesh Kumar"
+                        value={contact.fullName}
+                        onChange={(e) => setContact({ ...contact, fullName: e.target.value })}
+                        className={`w-full bg-slate-50 border rounded-xl p-3 text-xs sm:text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          contactErrors.fullName ? 'border-red-500 bg-red-50' : 'border-slate-300'
+                        }`}
+                      />
+                      {contactErrors.fullName && (
+                        <p className="text-[10px] text-red-600 mt-0.5">{contactErrors.fullName}</p>
+                      )}
+                    </div>
 
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">
+                        Academy / Institute Name *
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Excellence Career Academy"
+                        value={contact.instituteName}
+                        onChange={(e) => setContact({ ...contact, instituteName: e.target.value })}
+                        className={`w-full bg-slate-50 border rounded-xl p-3 text-xs sm:text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          contactErrors.instituteName ? 'border-red-500 bg-red-50' : 'border-slate-300'
+                        }`}
+                      />
+                      {contactErrors.instituteName && (
+                        <p className="text-[10px] text-red-600 mt-0.5">{contactErrors.instituteName}</p>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">
-                          Full Name *
+                          WhatsApp Mobile Number *
                         </label>
-                        <input
-                          type="text"
-                          placeholder="e.g. Rajesh Kumar"
-                          value={contact.fullName}
-                          onChange={(e) => setContact({ ...contact, fullName: e.target.value })}
-                          className={`w-full bg-slate-50 border rounded-xl p-3 text-xs sm:text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                            contactErrors.fullName ? 'border-red-500 bg-red-50' : 'border-slate-300'
-                          }`}
-                        />
-                        {contactErrors.fullName && (
-                          <p className="text-[10px] text-red-600 mt-0.5">{contactErrors.fullName}</p>
-                        )}
-                      </div>
-
-                      <div>
-                        <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">
-                          Academy / Institute Name *
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="e.g. Excellence Career Academy"
-                          value={contact.instituteName}
-                          onChange={(e) => setContact({ ...contact, instituteName: e.target.value })}
-                          className={`w-full bg-slate-50 border rounded-xl p-3 text-xs sm:text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                            contactErrors.instituteName ? 'border-red-500 bg-red-50' : 'border-slate-300'
-                          }`}
-                        />
-                        {contactErrors.instituteName && (
-                          <p className="text-[10px] text-red-600 mt-0.5">{contactErrors.instituteName}</p>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">
-                            Mobile / WhatsApp Number *
-                          </label>
-                          <div className="flex items-center">
-                            <span className="bg-slate-200 border border-r-0 border-slate-300 rounded-l-xl px-2.5 py-3 text-xs sm:text-sm font-extrabold text-slate-700 flex items-center space-x-1 shrink-0">
-                              <span>🇮🇳</span>
-                              <span>+91</span>
-                            </span>
-                            <input
-                              type="tel"
-                              maxLength={10}
-                              placeholder="9876543210"
-                              value={contact.whatsappNumber}
-                              onChange={(e) => {
-                                const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 10);
-                                setContact({ ...contact, whatsappNumber: digitsOnly });
-                              }}
-                              className={`w-full bg-slate-50 border rounded-r-xl p-3 text-xs sm:text-sm text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                                contactErrors.whatsappNumber ? 'border-red-500 bg-red-50' : 'border-slate-300'
-                              }`}
-                            />
-                          </div>
-                          {contactErrors.whatsappNumber ? (
-                            <p className="text-[10px] text-red-600 mt-0.5">{contactErrors.whatsappNumber}</p>
-                          ) : (
-                            <p className="text-[10px] text-slate-400 mt-0.5">10 digits only</p>
-                          )}
-                        </div>
-
-                        <div>
-                          <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">
-                            City *
-                          </label>
+                        <div className="flex items-center">
+                          <span className="bg-slate-200 border border-r-0 border-slate-300 rounded-l-xl px-2.5 py-3 text-xs sm:text-sm font-extrabold text-slate-700 flex items-center space-x-1 shrink-0">
+                            <span>🇮🇳</span>
+                            <span>+91</span>
+                          </span>
                           <input
-                            type="text"
-                            placeholder="e.g. Pune"
-                            value={contact.city}
-                            onChange={(e) => setContact({ ...contact, city: e.target.value })}
-                            className={`w-full bg-slate-50 border rounded-xl p-3 text-xs sm:text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                              contactErrors.city ? 'border-red-500 bg-red-50' : 'border-slate-300'
+                            type="tel"
+                            maxLength={10}
+                            placeholder="9876543210"
+                            value={contact.whatsappNumber}
+                            onChange={(e) => {
+                              const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 10);
+                              setContact({ ...contact, whatsappNumber: digitsOnly });
+                            }}
+                            className={`w-full bg-slate-50 border rounded-r-xl p-3 text-xs sm:text-sm text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                              contactErrors.whatsappNumber ? 'border-red-500 bg-red-50' : 'border-slate-300'
                             }`}
                           />
-                          {contactErrors.city && (
-                            <p className="text-[10px] text-red-600 mt-0.5">{contactErrors.city}</p>
-                          )}
                         </div>
+                        {contactErrors.whatsappNumber ? (
+                          <p className="text-[10px] text-red-600 mt-0.5">{contactErrors.whatsappNumber}</p>
+                        ) : (
+                          <p className="text-[10px] text-slate-400 mt-0.5">10 digits only</p>
+                        )}
                       </div>
 
                       <div>
                         <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">
-                          Email Address *
+                          City *
                         </label>
                         <input
-                          type="email"
-                          placeholder="rajesh@academy.com"
-                          value={contact.email}
-                          onChange={(e) => setContact({ ...contact, email: e.target.value })}
+                          type="text"
+                          placeholder="e.g. Pune"
+                          value={contact.city}
+                          onChange={(e) => setContact({ ...contact, city: e.target.value })}
                           className={`w-full bg-slate-50 border rounded-xl p-3 text-xs sm:text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                            contactErrors.email ? 'border-red-500 bg-red-50' : 'border-slate-300'
+                            contactErrors.city ? 'border-red-500 bg-red-50' : 'border-slate-300'
                           }`}
                         />
-                        {contactErrors.email && (
-                          <p className="text-[10px] text-red-600 mt-0.5">{contactErrors.email}</p>
+                        {contactErrors.city && (
+                          <p className="text-[10px] text-red-600 mt-0.5">{contactErrors.city}</p>
                         )}
                       </div>
+                    </div>
 
-                      <button
-                        type="submit"
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-3.5 rounded-xl shadow-xl shadow-blue-600/20 flex items-center justify-center gap-2 transition-all cursor-pointer text-xs sm:text-sm uppercase tracking-wide mt-4"
-                      >
-                        <span>PROCEED TO QUALIFICATION (8 QUESTIONS)</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
-                    </form>
-                  )}
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">
+                        Email Address *
+                      </label>
+                      <input
+                        type="email"
+                        placeholder="rajesh@academy.com"
+                        value={contact.email}
+                        onChange={(e) => setContact({ ...contact, email: e.target.value })}
+                        className={`w-full bg-slate-50 border rounded-xl p-3 text-xs sm:text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          contactErrors.email ? 'border-red-500 bg-red-50' : 'border-slate-300'
+                        }`}
+                      />
+                      {contactErrors.email && (
+                        <p className="text-[10px] text-red-600 mt-0.5">{contactErrors.email}</p>
+                      )}
+                    </div>
 
-                  {/* PHASE 2: QUALIFYING PART 1 (QUESTIONS 1-4) */}
-                  {formPhase === 'part1' && (
-                    <form onSubmit={handleProceedToPart2} className="space-y-4 animate-fadeIn">
-                      <div className="p-2.5 bg-blue-50 border border-blue-200 rounded-xl text-blue-900 text-xs font-extrabold flex items-center justify-between">
-                        <span>PART 1 OF 2: ACADEMY PROFILE</span>
-                        <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded-full uppercase">
-                          4 Questions
+                    {/* Optional Business Profile Fields */}
+                    <div className="pt-2 border-t border-slate-100 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                          Academy Profile (Optional)
                         </span>
+                        <span className="text-[10px] text-slate-400">Personalize experience</span>
                       </div>
 
-                      {/* Question 1 */}
-                      <div className="space-y-1.5">
-                        <label className="block text-xs font-bold text-slate-900">
-                          1. What best describes your training business or academy? *
-                        </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         <select
                           value={answers.businessType || ''}
                           onChange={(e) => handleSelectAnswer('businessType', e.target.value as BusinessType)}
-                          className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-sm"
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
                         >
-                          <option value="" disabled>-- Select Academy / Business Model --</option>
-                          <option value="Online Training Institute">Online Training Institute</option>
-                          <option value="Offline Training Institute">Offline Training Institute</option>
+                          <option value="">-- Academy Model --</option>
+                          <option value="Online Training Institute">Online Institute</option>
+                          <option value="Offline Training Institute">Offline Institute</option>
                           <option value="Online + Offline">Online + Offline</option>
-                          <option value="Coaching Centre / Academy">Coaching Centre / Academy</option>
-                          <option value="Independent Trainer / Course Creator">Independent Trainer / Course Creator</option>
-                          <option value="Planning to Start">Planning to Start</option>
+                          <option value="Coaching Centre / Academy">Coaching Centre</option>
+                          <option value="Independent Trainer / Course Creator">Independent Trainer</option>
                         </select>
-                      </div>
 
-                      {/* Question 2 */}
-                      <div className="space-y-1.5">
-                        <label className="block text-xs font-bold text-slate-900">
-                          2. What is the average price range of your main courses? *
-                        </label>
-                        <select
-                          value={answers.coursePrice || ''}
-                          onChange={(e) => handleSelectAnswer('coursePrice', e.target.value as CoursePrice)}
-                          className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-sm"
-                        >
-                          <option value="" disabled>-- Select Course Price Bracket --</option>
-                          <option value="Below ₹5,000">Below ₹5,000</option>
-                          <option value="₹5,000 – ₹10,000">₹5,000 – ₹10,000</option>
-                          <option value="₹10,000 – ₹25,000">₹10,000 – ₹25,000</option>
-                          <option value="₹25,000 – ₹50,000">₹25,000 – ₹50,000</option>
-                          <option value="₹50,000+">₹50,000+</option>
-                        </select>
-                      </div>
-
-                      {/* Question 3 */}
-                      <div className="space-y-1.5">
-                        <label className="block text-xs font-bold text-slate-900">
-                          3. How many new students do you enroll per month? *
-                        </label>
-                        <select
-                          value={answers.monthlyStudents || ''}
-                          onChange={(e) => handleSelectAnswer('monthlyStudents', e.target.value as MonthlyStudents)}
-                          className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-sm"
-                        >
-                          <option value="" disabled>-- Select Monthly Admissions --</option>
-                          <option value="0–10">0–10 Students/Month</option>
-                          <option value="11–25">11–25 Students/Month</option>
-                          <option value="26–50">26–50 Students/Month</option>
-                          <option value="51–100">51–100 Students/Month</option>
-                          <option value="100+">100+ Students/Month</option>
-                        </select>
-                      </div>
-
-                      {/* Question 4 */}
-                      <div className="space-y-1.5">
-                        <label className="block text-xs font-bold text-slate-900">
-                          4. What is your approximate monthly institute revenue? *
-                        </label>
                         <select
                           value={answers.monthlyRevenue || ''}
                           onChange={(e) => handleSelectAnswer('monthlyRevenue', e.target.value as MonthlyRevenue)}
-                          className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-sm"
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
                         >
-                          <option value="" disabled>-- Select Revenue Bracket --</option>
+                          <option value="">-- Monthly Revenue --</option>
                           <option value="Below ₹1 Lakh">Below ₹1 Lakh</option>
                           <option value="₹1–₹3 Lakhs">₹1–₹3 Lakhs</option>
                           <option value="₹3–₹5 Lakhs">₹3–₹5 Lakhs</option>
@@ -534,163 +416,26 @@ export const Page1Registration: React.FC<Page1RegistrationProps> = ({
                           <option value="₹10 Lakhs+">₹10 Lakhs+</option>
                         </select>
                       </div>
+                    </div>
 
-                      {qError && (
-                        <div className="flex items-center gap-1.5 p-2.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs font-semibold animate-fadeIn">
-                          <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
-                          <span>{qError}</span>
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-3.5 rounded-xl shadow-xl shadow-blue-600/25 flex items-center justify-center gap-2 transition-all cursor-pointer text-xs sm:text-sm uppercase tracking-wide mt-4 disabled:opacity-75"
+                    >
+                      {isSubmitting ? (
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          <span>ACCESSING WEBINAR...</span>
                         </div>
-                      )}
-
-                      <div className="pt-2 flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setQError('');
-                            setFormPhase('details');
-                          }}
-                          className="px-3.5 py-3 rounded-xl border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-xs font-bold transition-all cursor-pointer"
-                        >
-                          Back
-                        </button>
-                        <button
-                          type="submit"
-                          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-3.5 rounded-xl shadow-md flex items-center justify-center gap-2 text-xs uppercase tracking-wide transition-all cursor-pointer"
-                        >
-                          <span>CONTINUE TO PART 2 (FINAL 4 QUESTIONS)</span>
+                      ) : (
+                        <>
+                          <span>GET INSTANT ACCESS TO WEBINAR (FREE)</span>
                           <ArrowRight className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </form>
-                  )}
-
-                  {/* PHASE 3: QUALIFYING PART 2 (QUESTIONS 5-8) */}
-                  {formPhase === 'part2' && (
-                    <form onSubmit={handleSubmitForm} className="space-y-4 animate-fadeIn">
-                      <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs font-extrabold flex items-center justify-between">
-                        <span>PART 2 OF 2: GROWTH & GOALS</span>
-                        <span className="text-[10px] bg-amber-600 text-white px-2 py-0.5 rounded-full uppercase">
-                          Final 4 Questions
-                        </span>
-                      </div>
-
-                      {/* Question 5 */}
-                      <div className="space-y-1.5">
-                        <label className="block text-xs font-bold text-slate-900">
-                          5. What is your current monthly ad / marketing budget? *
-                        </label>
-                        <select
-                          value={answers.marketingSpend || ''}
-                          onChange={(e) => handleSelectAnswer('marketingSpend', e.target.value as MarketingSpend)}
-                          className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-sm"
-                        >
-                          <option value="" disabled>-- Select Ad Budget --</option>
-                          <option value="Not Running Ads">Not Running Ads</option>
-                          <option value="Below ₹10,000">Below ₹10,000</option>
-                          <option value="₹10,000–₹25,000">₹10,000–₹25,000</option>
-                          <option value="₹25,000–₹50,000">₹25,000–₹50,000</option>
-                          <option value="₹50,000–₹1 Lakh">₹50,000–₹1 Lakh</option>
-                          <option value="₹1 Lakh+">₹1 Lakh+</option>
-                        </select>
-                      </div>
-
-                      {/* Question 6 */}
-                      <div className="space-y-1.5">
-                        <label className="block text-xs font-bold text-slate-900">
-                          6. What is your biggest student acquisition challenge right now? *
-                        </label>
-                        <select
-                          value={answers.biggestChallenge || ''}
-                          onChange={(e) => handleSelectAnswer('biggestChallenge', e.target.value as BiggestChallenge)}
-                          className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-sm"
-                        >
-                          <option value="" disabled>-- Select Primary Bottleneck --</option>
-                          <option value="Not getting enough enquiries">Not getting enough enquiries</option>
-                          <option value="Lead quality is poor">Lead quality is poor</option>
-                          <option value="Advertising cost is too high">Advertising cost is too high</option>
-                          <option value="Low webinar / workshop attendance">Low webinar / workshop attendance</option>
-                          <option value="Follow-up is inconsistent">Follow-up is inconsistent</option>
-                          <option value="Getting leads but not enough admissions">Getting leads but not enough admissions</option>
-                          <option value="No proper CRM / automation">No proper CRM / automation</option>
-                          <option value="Not sure where the problem is">Not sure where the problem is</option>
-                        </select>
-                      </div>
-
-                      {/* Question 7 */}
-                      <div className="space-y-1.5">
-                        <label className="block text-xs font-bold text-slate-900">
-                          7. What is your role in your institute or business? *
-                        </label>
-                        <select
-                          value={answers.businessRole || ''}
-                          onChange={(e) => handleSelectAnswer('businessRole', e.target.value as BusinessRole)}
-                          className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-sm"
-                        >
-                          <option value="" disabled>-- Select Your Role --</option>
-                          <option value="Founder / Owner">Founder / Owner</option>
-                          <option value="Co-Founder / Partner">Co-Founder / Partner</option>
-                          <option value="Director / Management">Director / Management</option>
-                          <option value="Marketing Head / Manager">Marketing Head / Manager</option>
-                          <option value="Sales / Admissions Head">Sales / Admissions Head</option>
-                          <option value="Team Member">Team Member</option>
-                          <option value="Other">Other</option>
-                        </select>
-                      </div>
-
-                      {/* Question 8 */}
-                      <div className="space-y-1.5">
-                        <label className="block text-xs font-bold text-slate-900">
-                          8. When are you looking to implement an automated student pipeline? *
-                        </label>
-                        <select
-                          value={answers.nextStepTimeline || ''}
-                          onChange={(e) => handleSelectAnswer('nextStepTimeline', e.target.value as NextStepTimeline)}
-                          className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-sm"
-                        >
-                          <option value="" disabled>-- Select Timeline --</option>
-                          <option value="I'd like to implement it as soon as possible">As soon as possible (Immediate)</option>
-                          <option value="I'd consider implementation within 7–30 days">Within 7–30 days</option>
-                          <option value="I'd consider implementation within 1–3 months">Within 1–3 months</option>
-                          <option value="I'm currently comparing different growth solutions">Currently comparing solutions</option>
-                          <option value="I'm attending mainly to understand the system first">Mainly to understand the system first</option>
-                        </select>
-                      </div>
-
-                      {qError && (
-                        <div className="flex items-center gap-1.5 p-2.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs font-semibold animate-fadeIn">
-                          <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
-                          <span>{qError}</span>
-                        </div>
+                        </>
                       )}
-
-                      <div className="pt-2 flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setQError('');
-                            setFormPhase('part1');
-                          }}
-                          className="px-3.5 py-3 rounded-xl border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-xs font-bold transition-all cursor-pointer"
-                        >
-                          Back
-                        </button>
-                        <button
-                          type="submit"
-                          disabled={isSubmitting}
-                          className="flex-1 bg-amber-400 hover:bg-amber-500 text-slate-950 font-extrabold py-3.5 rounded-xl shadow-xl shadow-amber-400/20 flex items-center justify-center gap-2 text-xs sm:text-sm uppercase tracking-wide transition-all cursor-pointer"
-                        >
-                          {isSubmitting ? (
-                            <span>CONFIRMING & ACCESSING WEBINAR...</span>
-                          ) : (
-                            <>
-                              <span>CONFIRM & ACCESS WEBINAR NOW</span>
-                              <ArrowRight className="w-4 h-4" />
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </form>
-                  )}
+                    </button>
+                  </form>
                 </div>
               </div>
             </div>

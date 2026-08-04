@@ -82,6 +82,7 @@ export type PipelineStage =
   | 'WEBINAR VIEWED'
   | 'ENGAGED'
   | 'WHATSAPP CLICKED'
+  | 'PDF DOWNLOADED'
   | 'CONTACTED'
   | 'QUALIFIED OPPORTUNITY'
   | 'DISCOVERY CALL'
@@ -129,6 +130,7 @@ export interface LeadRecord {
   utmParams: UtmParams;
   hasViewedWebinar?: boolean;
   hasClickedWhatsapp?: boolean;
+  hasDownloadedPdf?: boolean;
   watchTimeSeconds?: number;
   watchPercentage?: number;
   visitCount?: number;

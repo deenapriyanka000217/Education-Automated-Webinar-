@@ -14,11 +14,15 @@ import {
   Lock,
   X,
   FileSpreadsheet,
+  Download,
+  FileDown,
+  Gift,
 } from 'lucide-react';
 import { LeadRecord } from '../types';
 import { generateWhatsAppMessage, generateWhatsAppUrl } from '../utils/whatsapp';
 import { pixelTracker } from '../utils/pixel';
 import { submitLeadToGoogleSheets } from '../utils/googleSheetsSync';
+import { downloadPersonalizedPDF } from '../utils/pdfGenerator';
 
 interface Page2WebinarProps {
   currentLead: LeadRecord | null;
@@ -235,7 +239,48 @@ export const Page2Webinar: React.FC<Page2WebinarProps> = ({
   const whatsappUrl = generateWhatsAppUrl('919876543210', whatsappMessage);
 
   const watchPct = Math.min(100, Math.round((watchSeconds / TOTAL_VIDEO_SECONDS) * 100));
-  const isUnlocked = watchPct >= 50 || isManualUnlocked;
+  const isUnlocked = true; // Always unlocked for immediate, friction-free browser downloads and conversions
+
+  const [pdfDownloadCount, setPdfDownloadCount] = useState<number>(0);
+  const [isDownloading, setIsDownloading] = useState<boolean>(false);
+
+  const handleDownloadPDFClick = () => {
+    try {
+      setIsDownloading(true);
+      // Generate and download personalized PDF
+      downloadPersonalizedPDF(activeLead);
+      setPdfDownloadCount((prev) => prev + 1);
+
+      const updatedLead: LeadRecord = {
+        ...activeLead,
+        watchTimeSeconds: watchSeconds,
+        watchPercentage: watchPct,
+        hasDownloadedPdf: true,
+        stage: 'PDF DOWNLOADED',
+        lastVisitedAt: new Date().toISOString(),
+      };
+
+      submitLeadToGoogleSheets(updatedLead);
+
+      pixelTracker.track('PdfDownloaded', {
+        lead_id: activeLead.id,
+        institute: activeLead.contact.instituteName,
+        lead_score: activeLead.leadScore,
+        downloadCount: pdfDownloadCount + 1,
+      });
+
+      if (onUpdateLeadMetrics && activeLead.id) {
+        onUpdateLeadMetrics(activeLead.id, {
+          hasDownloadedPdf: true,
+          stage: 'PDF DOWNLOADED',
+        });
+      }
+      setTimeout(() => setIsDownloading(false), 1500);
+    } catch (err) {
+      console.error('PDF Download failed', err);
+      setIsDownloading(false);
+    }
+  };
 
   const handleWhatsAppClick = () => {
     // Gating check: User must watch full presentation video to unlock PDF & strategy call
@@ -335,34 +380,81 @@ export const Page2Webinar: React.FC<Page2WebinarProps> = ({
           </div>
         </div>
 
-        {/* WhatsApp Unlocked CTA Button Area */}
-        <div className="w-full max-w-2xl text-center space-y-4 pt-2">
-          <div className="space-y-3 animate-fadeIn">
-            {/* Small text above the button */}
-            <div className="text-slate-300 text-xs sm:text-sm font-semibold">
-              Get PDF Now
+        {/* Dynamic High-Converting CTA Area — Fully Unlocked for Instant Access */}
+        <div className="w-full max-w-3xl bg-slate-900/60 border border-slate-800 rounded-2xl p-6 sm:p-8 space-y-6 shadow-2xl backdrop-blur-sm animate-fadeIn">
+          <div className="text-center space-y-2">
+            <h2 className="text-xl sm:text-2xl font-black text-white flex items-center justify-center gap-2">
+              <Gift className="w-6 h-6 text-amber-400 animate-pulse" />
+              <span>Your Custom System Materials Are Ready!</span>
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto">
+              Your personalized <strong>Automated Admission Growth Blueprint (PDF)</strong> has been compiled based on your institute profile. Choose an action below:
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Action 1: Instant Direct PDF Download */}
+            <div className="bg-slate-950 border border-slate-800/80 rounded-xl p-5 flex flex-col justify-between space-y-4">
+              <div className="space-y-1.5">
+                <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-md text-[10px] font-extrabold uppercase tracking-wider inline-block">
+                  Resource 1 of 2
+                </span>
+                <h3 className="text-sm sm:text-base font-bold text-white">Personalized Growth Guide</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Contains your customized lead score diagnosis, funnel blueprints, integration setups, and launch plan.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <button
+                  onClick={handleDownloadPDFClick}
+                  disabled={isDownloading}
+                  className="w-full bg-blue-600 hover:bg-blue-500 text-white font-extrabold py-3.5 px-4 rounded-xl shadow-lg transition-all transform hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center space-x-2 cursor-pointer text-xs sm:text-sm uppercase tracking-wide disabled:opacity-70"
+                >
+                  {isDownloading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>COMPILING GUIDE...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FileDown className="w-4.5 h-4.5" />
+                      <span>📥 Download Custom PDF Blueprint</span>
+                    </>
+                  )}
+                </button>
+                <p className="text-[10px] text-slate-500 text-center leading-tight">
+                  💡 In-app browser (Instagram/FB) blocking your download? Tap WhatsApp on the right to receive it directly!
+                </p>
+              </div>
             </div>
 
-            {isUnlocked ? (
-              <div className="p-1.5 rounded-2xl bg-emerald-500/20 border border-emerald-500/50 shadow-[0_0_35px_rgba(16,185,129,0.4)]">
-                <button
-                  onClick={handleWhatsAppClick}
-                  id="webinar-whatsapp-cta"
-                  className="w-full font-black py-4 px-5 rounded-xl shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center space-x-2.5 cursor-pointer text-sm sm:text-base font-bold tracking-wide uppercase bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-[0_0_30px_rgba(16,185,129,0.7)]"
-                >
-                  <MessageSquare className="w-5 h-5 shrink-0 fill-slate-950" />
-                  <span className="whitespace-nowrap">Get PDF Now</span>
-                  <ArrowRight className="w-5 h-5 shrink-0" />
-                </button>
+            {/* Action 2: WhatsApp Chat Connection */}
+            <div className="bg-slate-950 border border-slate-800/80 rounded-xl p-5 flex flex-col justify-between space-y-4">
+              <div className="space-y-1.5">
+                <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md text-[10px] font-extrabold uppercase tracking-wider inline-block">
+                  Resource 2 of 2
+                </span>
+                <h3 className="text-sm sm:text-base font-bold text-white">Live Strategy Consultation</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Schedule your free 1-on-1 blueprint walkthrough call to activate your 24/7 student acquisition pipeline.
+                </p>
               </div>
-            ) : (
-              <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-center space-y-2">
-                <div className="flex items-center justify-center space-x-2 text-amber-400 font-semibold text-xs sm:text-sm">
-                  <Lock className="w-4 h-4" />
-                  <span>Get PDF Now (Unlocks after watching 50%)</span>
-                </div>
-              </div>
-            )}
+
+              <button
+                onClick={handleWhatsAppClick}
+                className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold py-3.5 px-4 rounded-xl shadow-lg transition-all transform hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center space-x-2 cursor-pointer text-xs sm:text-sm uppercase tracking-wide shadow-emerald-500/10 hover:shadow-emerald-500/25"
+              >
+                <MessageSquare className="w-4.5 h-4.5 fill-slate-950 text-slate-950" />
+                <span>💬 WhatsApp Me - Book Call</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Mini info banner */}
+          <div className="p-3.5 bg-slate-950/50 rounded-xl border border-slate-800/80 text-[11px] text-center text-slate-400 flex items-center justify-center gap-1.5 leading-relaxed">
+            <CheckCircle2 className="w-4.5 h-4.5 text-emerald-500 shrink-0" />
+            <span>Both downloads and WhatsApp interactions are automatically synchronized with your spreadsheet.</span>
           </div>
         </div>
 
